@@ -7,13 +7,20 @@ const cwd = process.cwd();
 const cwdFile = file => path.join(cwd, file)
 
 const pkg = require(cwdFile('package.json'));
-const prodPkgFile = cwdFile('package-prod.json')
 
-console.log('>> Generate package-prod.json file')
+const prodPkgFile = cwdFile('deps-prod.json')
+const devPkgFile = cwdFile('deps-dev.json')
+
+console.log('>> Generate deps files')
 
 fs.writeFileSync(
   prodPkgFile,
-  JSON.stringify(pkg, (key, value) => key === 'devDependencies' ? undefined : value, 2)
+  JSON.stringify(pkg, ['dependencies'], 2)
+);
+
+fs.writeFileSync(
+  devPkgFile,
+  JSON.stringify(pkg, ['dependencies', 'devDependencies'], 2)
 );
 
 const dockerArgs = Array.from(process.argv).slice(2);
@@ -24,10 +31,11 @@ const dockerProcess = spawn('docker', ['build', ...dockerArgs], {
 });
 
 const cleanup = () => {
-  console.log('>> Remove package-prod.json file')
+  console.log('>> Remove deps files')
 
   try {
     fs.rmSync(prodPkgFile)
+    fs.rmSync(devPkgFile)
   } catch {}
 }
 

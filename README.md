@@ -1,19 +1,22 @@
 # npm-docker-build
 
-Generate `package-prod.json` that without `devDependencies` from `package.json` before call `docker build`, and removes after `docker build` exit.
+To use docker cache more effectively, prevent `package.json` file changes to break docker layer cache, so that pick out dependencies from package.json before docker build executes and `COPY` the ONLY dependency statements as `package.json` file to run `npm install` command when building image.
 
 ```Dockerfile
 FROM node AS build-stage
 WORKDIR /app
 
-COPY . .
-RUN npm i && npm run build
+COPY src .
+COPY deps-dev.json ./package.json
+RUN npm i
+COPY package.json ./package.json
+RUN npm run build
 
 FROM node
 WORKDIR /app
 
 COPY --from=build-stage build/ .
-COPY ./package-prod.json .
+COPY ./deps-prod.json ./package.json
 RUN npm i
 
 ENTRYPOINT ['npm', 'start']
